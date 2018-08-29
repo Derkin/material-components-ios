@@ -376,6 +376,43 @@ generate_apidiff() {
   done
 }
 
+# Will run git clang-format on the branch's changes, reporting a failure if the linter generated any
+# stylistic changes.
+#
+# For local runs, you must:
+#
+# - Have clang-format installed.
+# - Have the clang-format-git script installed.
+#
+lint_clang_format() {
+  if [ -n "$KOKORO_BUILD_NUMBER" ]; then
+    mkdir bin
+    cd bin
+
+    # Install clang-format
+    curl -s "https://github.com/material-foundation/clang-format/releases/download/r340070/clang-format" -o "clang-format"
+    chmod +x "clang-format"
+    
+    # Install git-clang-format
+    curl -s https://raw.githubusercontent.com/llvm-mirror/clang/c510fac5695e904b43d5bf0feee31cc9550f110e/tools/clang-format/git-clang-format -o "git-clang-format"
+    chmod +x "git-clang-format"
+
+    export PATH="$(pwd):$PATH"
+    
+    cd ../
+
+    # Move into our cloned repo
+    cd github/repo
+  fi
+  
+  if [ ! $(git clang-format -h) ]; then
+    echo "git clang-format is not configured correctly."
+    exit 1
+  fi
+  
+  echo "Done."
+}
+
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -425,6 +462,7 @@ popd
 
 case "$DEPENDENCY_SYSTEM" in
   "bazel")      run_bazel ;;
+  "clang-format")  lint_clang_format ;;
   "cocoapods")  run_cocoapods ;;
   "cocoapods-podspec")  run_cocoapods ;;
   "website")    generate_website ;;
